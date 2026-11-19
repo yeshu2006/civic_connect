@@ -24,8 +24,8 @@ export default function ClassificationResult({
 }) {
   const [showManualPicker, setShowManualPicker] = useState(false);
 
-  // 1. Model Loading / Download State
-  if (isLoading || isClassifying) {
+  // 1. Model Loading / Download State (only if no prediction result yet)
+  if (!result && (isLoading || isClassifying)) {
     const progressPct = loadingProgress?.progress || 0;
     const isDownloading = loadingProgress?.status === 'downloading';
 
@@ -330,7 +330,10 @@ export default function ClassificationResult({
               {result.predictedCategory}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              CLIP Similarity: <strong>{result.similarityPercent}%</strong> ({result.confidenceScore.toFixed(3)})
+              AI Match: <strong>{result.similarityPercent}%</strong>
+              <span style={{ marginLeft: 6, fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
+                ({result.modelName?.includes('clip') ? 'CLIP ViT-B/32' : '⚡ Edge Vision AI'})
+              </span>
             </div>
           </div>
         </div>
@@ -513,7 +516,11 @@ export default function ClassificationResult({
         }}
       >
         <FiInfo size={11} />
-        <span>Scores represent CLIP zero-shot cosine similarity in your browser ({result.deviceUsed?.toUpperCase() || 'WASM'}). Always verify before submitting.</span>
+        <span>
+          {result.modelName?.includes('clip')
+            ? `Scores represent CLIP ViT-B/32 zero-shot cosine similarity in your browser (${result.deviceUsed?.toUpperCase() || 'WASM'}). Always verify before submitting.`
+            : `Classified instantly via in-browser Local Edge Vision (${result.deviceUsed || 'WASM'}). Always verify before submitting.`}
+        </span>
       </div>
     </div>
   );

@@ -172,29 +172,32 @@ export function analyzePixelMatrix(data, w, h) {
 
   // ================= REJECTION CHECKS =================
 
-  // Check 1: Extreme Exposure (Too dark or completely washed out)
-  if (avgLuminance < 25) {
+  // Check 1: Extreme Exposure (Pitch black / unreadable or completely washed out)
+  if (avgLuminance < 16) {
     return {
       valid: false,
+      isFatal: true,
       code: 'IMAGE_TOO_DARK',
-      error: 'Photo is too dark to clearly see the issue. Please take a photograph with adequate daylight or lighting.',
+      error: 'Photo is pitch dark to clearly see the issue. Please take a photograph with adequate daylight or lighting.',
       metrics
     };
   }
 
-  if (avgLuminance > 242) {
+  if (avgLuminance > 246) {
     return {
       valid: false,
+      isFatal: true,
       code: 'IMAGE_OVEREXPOSED',
       error: 'Photo is overexposed or completely washed out. Please capture the issue under normal lighting.',
       metrics
     };
   }
 
-  // Check 2: Blurry / Out-of-focus
-  if (blurScore < 60) {
+  // Check 2: Blurry / Out-of-focus (Calibrated for resized canvas pixel variance)
+  if (blurScore < 20) {
     return {
       valid: false,
+      isFatal: true,
       code: 'IMAGE_BLURRY',
       error: `Photo is too blurry or out of focus (sharpness score: ${metrics.blurScore}). Please take a clear, stable photograph of the issue.`,
       metrics
@@ -205,6 +208,7 @@ export function analyzePixelMatrix(data, w, h) {
   if (skinRatio > 0.28 || centerSkinRatio > 0.32) {
     return {
       valid: false,
+      isFatal: true,
       code: 'IMAGE_SELFIE_DETECTED',
       error: 'Unrelated photo rejected: This image appears to be a selfie or person portrait. CivicConnect only accepts photos of municipal infrastructure defects (e.g. potholes, leaks, broken streetlights, trash).',
       metrics
@@ -212,11 +216,33 @@ export function analyzePixelMatrix(data, w, h) {
   }
 
   // Check D: Digital Screenshots / UI Graphics / Memes
-  if (topColorRatio > 0.42 && pureWhiteOrBlackPixels / totalPixels > 0.35) {
+  if (topColorRatio > 0.55 && pureWhiteOrBlackPixels / totalPixels > 0.40) {
     return {
       valid: false,
+      isFatal: true,
       code: 'IMAGE_SCREENSHOT_DETECTED',
       error: 'Unrelated graphic rejected: This image appears to be a digital screenshot or graphic. Please upload an authentic photo of the municipal defect taken on-site.',
+      metrics
+    };
+  }
+
+  // Advisory Non-Fatal Warnings (Allows reporting to continue without blocking citizen)
+  if (blurScore < 45) {
+    return {
+      valid: true,
+      isWarning: true,
+      code: 'IMAGE_SOFT_FOCUS',
+      error: 'Notice: Photograph has low edge sharpness, but our AI will attempt classification.',
+      metrics
+    };
+  }
+
+  if (avgLuminance < 25) {
+    return {
+      valid: true,
+      isWarning: true,
+      code: 'IMAGE_LOW_LIGHT',
+      error: 'Notice: Photograph captured in low-light conditions. Municipal crew will review accordingly.',
       metrics
     };
   }

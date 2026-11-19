@@ -84,10 +84,18 @@ export default function ReportIssuePage() {
     const quality = await validateCivicPhotograph(originalFile);
     if (!quality.valid) {
       setImageValidationError(quality.error);
-      setImageFile(null);
-      setImagePreview('');
       error(quality.error);
+      // Still display preview so citizen sees what photo was uploaded
+      try {
+        const compressed = await compressImageForLowBandwidth(originalFile);
+        setImageFile(compressed);
+        setImagePreview(URL.createObjectURL(compressed));
+      } catch (e) {}
       return;
+    }
+
+    if (quality.isWarning) {
+      info(quality.error);
     }
 
     // 2. Compress image for low-bandwidth upload optimization
@@ -100,26 +108,31 @@ export default function ReportIssuePage() {
     setImageFile(compressed);
     setImagePreview(URL.createObjectURL(compressed));
 
-    // 3. Execute in-browser CLIP Zero-Shot Classification
+    // 3. Execute in-browser CLIP / Edge Vision Zero-Shot Classification
     const clipResult = await classifyWithCLIP(compressed);
 
-    if (clipResult && clipResult.isCivicIssue) {
-      setCategory(clipResult.predictedCategory);
-      if (clipResult.suggestedDepartment) {
-        setDepartment(clipResult.suggestedDepartment);
+    if (clipResult) {
+      if (clipResult.isCivicIssue) {
+        setCategory(clipResult.predictedCategory);
+        if (clipResult.suggestedDepartment) {
+          setDepartment(clipResult.suggestedDepartment);
+        }
+        if (clipResult.suggestedSeverity) {
+          setSeverity(clipResult.suggestedSeverity);
+        }
+        if (!title.trim() && clipResult.suggestedTitle) {
+          setTitle(clipResult.suggestedTitle);
+        }
+        if (!description.trim() && clipResult.suggestedDescription) {
+          setDescription(clipResult.suggestedDescription);
+        }
+        success(
+          `AI classified image as "${clipResult.predictedCategory}" (${clipResult.similarityPercent}% match). Please verify below.`
+        );
+      } else {
+        setCategory('Not a Civic Issue');
+        info('Notice: Image flagged as non-civic. You can choose a category manually below if this is a mistake.');
       }
-      if (clipResult.suggestedSeverity) {
-        setSeverity(clipResult.suggestedSeverity);
-      }
-      if (!title.trim() && clipResult.suggestedTitle) {
-        setTitle(clipResult.suggestedTitle);
-      }
-      if (!description.trim() && clipResult.suggestedDescription) {
-        setDescription(clipResult.suggestedDescription);
-      }
-      success(
-        `AI classified image as "${clipResult.predictedCategory}" (${clipResult.similarityPercent}% similarity). Please verify below.`
-      );
     }
   };
 
