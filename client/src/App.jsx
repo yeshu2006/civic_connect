@@ -1,51 +1,63 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { SocketProvider } from './context/SocketContext';
-import MainLayout from './components/layout/MainLayout';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import ReportIssue from './pages/ReportIssue';
-import Heatmap from './pages/Heatmap';
-import AllIssues from './pages/AllIssues';
-import Settings from './pages/Settings';
+import DashboardLayout from './layouts/DashboardLayout.jsx';
+import AuthLayout from './layouts/AuthLayout.jsx';
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
-};
+import DashboardPage from './pages/DashboardPage.jsx';
+import ReportIssuePage from './pages/ReportIssuePage.jsx';
+import AllIssuesPage from './pages/AllIssuesPage.jsx';
+import IssueDetailPage from './pages/IssueDetailPage.jsx';
+import NearbyIssuesPage from './pages/NearbyIssuesPage.jsx';
+import MyReportsPage from './pages/MyReportsPage.jsx';
+import DepartmentOverviewPage from './pages/DepartmentOverviewPage.jsx';
+import SuperAdminPage from './pages/SuperAdminPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
 
-function AppRoutes() {
+export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/report" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
-        <Route path="/map" element={<ProtectedRoute><Heatmap /></ProtectedRoute>} />
-        <Route path="/issues" element={<ProtectedRoute><AllIssues /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      </Route>
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <Router>
+    <BrowserRouter>
       <AuthProvider>
-        <SocketProvider>
-          <AppRoutes />
-        </SocketProvider>
+        <ToastProvider>
+          <Routes>
+            {/* Auth Routes */}
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+            </Route>
+
+            {/* Dashboard / Main Platform Routes */}
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/report" element={<ReportIssuePage />} />
+              <Route path="/issues" element={<AllIssuesPage />} />
+              <Route path="/issues/:id" element={<IssueDetailPage />} />
+              <Route path="/map" element={<NearbyIssuesPage />} />
+              <Route path="/my-reports" element={<MyReportsPage />} />
+
+              {/* Department Admin Routes */}
+              <Route path="/department-overview" element={<DepartmentOverviewPage />} />
+              <Route path="/manage-issues" element={<DepartmentOverviewPage />} />
+
+              {/* Super Admin Routes */}
+              <Route path="/admin/departments" element={<SuperAdminPage />} />
+              <Route path="/admin/users" element={<SuperAdminPage />} />
+              <Route path="/admin/analytics" element={<SuperAdminPage />} />
+
+              {/* Profile & Settings */}
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+
+            {/* Catch-all redirect */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </ToastProvider>
       </AuthProvider>
-    </Router>
+    </BrowserRouter>
   );
 }
-
-export default App;
